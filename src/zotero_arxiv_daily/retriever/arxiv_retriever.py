@@ -162,10 +162,15 @@ class ArxivRetriever(BaseRetriever):
         abstract = raw_paper.summary
         pdf_url = raw_paper.pdf_url
         full_text = extract_text_from_tar(raw_paper)
+        full_text_source = "tar" if full_text else None
         if full_text is None:
             full_text = extract_text_from_html(raw_paper)
+            full_text_source = "html" if full_text else None
         if full_text is None:
             full_text = extract_text_from_pdf(raw_paper)
+            full_text_source = "pdf" if full_text else None
+        if full_text is None:
+            full_text_source = "abstract_only" if abstract else "none"
         return Paper(
             source=self.name,
             title=title,
@@ -174,6 +179,7 @@ class ArxivRetriever(BaseRetriever):
             url=raw_paper.entry_id,
             pdf_url=pdf_url,
             full_text=full_text,
+            full_text_source=full_text_source,
         )
 
 

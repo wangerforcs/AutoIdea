@@ -185,6 +185,7 @@ def make_sample_paper(**overrides) -> Paper:
         url="https://arxiv.org/abs/2026.00001",
         pdf_url="https://arxiv.org/pdf/2026.00001",
         full_text="\\begin{document} Some text. \\end{document}",
+        full_text_source="tar",
         tldr=None,
         idea_outline=None,
         ideas=None,

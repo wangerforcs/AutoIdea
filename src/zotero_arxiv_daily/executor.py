@@ -11,6 +11,7 @@ from .construct_email import render_email
 from .utils import send_email
 from openai import OpenAI
 from tqdm import tqdm
+from collections import Counter
 
 
 def normalize_path_patterns(patterns: list[str] | ListConfig | None, config_key: str) -> list[str] | None:
@@ -39,6 +40,27 @@ class Executor:
         }
         self.reranker = get_reranker_cls(config.executor.reranker)(config)
         self.openai_client = OpenAI(api_key=config.llm.api.key, base_url=config.llm.api.base_url)
+
+    def log_full_text_source_stats(self, papers) -> None:
+        if not papers:
+            return
+        counts = Counter((p.full_text_source or "unknown") for p in papers)
+        total = len(papers)
+        ordered_keys = ["tar", "html", "pdf", "abstract_only", "none", "unknown"]
+        parts = []
+        for key in ordered_keys:
+            count = counts.get(key, 0)
+            if count == 0:
+                continue
+            ratio = count / total * 100
+            parts.append(f"{key}={count} ({ratio:.1f}%)")
+        extra_keys = [key for key in counts if key not in ordered_keys]
+        for key in sorted(extra_keys):
+            count = counts[key]
+            ratio = count / total * 100
+            parts.append(f"{key}={count} ({ratio:.1f}%)")
+        logger.info(f"Paper text source stats: {', '.join(parts)}")
+
     def fetch_zotero_corpus(self) -> list[CorpusPaper]:
         logger.info("Fetching zotero corpus")
         zot = zotero.Zotero(self.config.zotero.user_id, 'user', self.config.zotero.api_key)
@@ -104,6 +126,7 @@ class Executor:
                 logger.info(f"No {source} papers found")
                 continue
             logger.info(f"Retrieved {len(papers)} {source} papers")
+            self.log_full_text_source_stats(papers)
             all_papers.extend(papers)
         logger.info(f"Total {len(all_papers)} papers retrieved from all sources")
         reranked_papers = []

@@ -35,6 +35,7 @@ class Paper:
     url: str
     pdf_url: Optional[str] = None
     full_text: Optional[str] = None
+    full_text_source: Optional[str] = None
     tldr: Optional[str] = None
     idea_outline: Optional[dict[str, str]] = None
     ideas: Optional[list[str]] = None
