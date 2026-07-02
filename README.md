@@ -11,9 +11,6 @@ For each selected paper, the workflow can generate:
 - Practical ideas: research directions, engineering improvements, workflow ideas, and experiment suggestions
 - A daily cross-paper summary: `Today's Top Directions`
 
-Original reference repository: [`TideDra/zotero-arxiv-daily`](https://github.com/TideDra/zotero-arxiv-daily)
-
-
 ## Config Links
 
 - [config/default.yaml](https://github.com/wangerforcs/AutoIdea/blob/main/config/default.yaml)
