@@ -53,18 +53,44 @@ def get_empty_html():
   return block_template
 
 
-def get_daily_summary_html(summary_items: list[str] | None) -> str:
+def get_daily_summary_html(summary_items: list[dict] | list[str] | None) -> str:
     if not summary_items:
         return ""
-    items = "".join(
-        f'<li style="margin-bottom: 8px;">{item}</li>'
-        for item in summary_items
-    )
+    cards = []
+    for item in summary_items:
+        if isinstance(item, str):
+            item = {"idea": item, "innovation": "", "feasibility": "", "evidence": [], "first_step": ""}
+        evidence = item.get("evidence", [])
+        evidence_html = ""
+        if evidence:
+            bullets = "".join(f"<li>{entry}</li>" for entry in evidence)
+            evidence_html = f'<div style="margin-top: 6px;"><strong>Evidence:</strong><ul style="margin: 6px 0 0 20px; padding: 0;">{bullets}</ul></div>'
+        innovation_html = f'<div style="margin-top: 6px;"><strong>Innovation:</strong> {item.get("innovation", "")}</div>' if item.get("innovation") else ""
+        feasibility_html = f'<div style="margin-top: 6px;"><strong>Why it is feasible:</strong> {item.get("feasibility", "")}</div>' if item.get("feasibility") else ""
+        first_step_html = f'<div style="margin-top: 6px;"><strong>First step:</strong> {item.get("first_step", "")}</div>' if item.get("first_step") else ""
+        cards.append(
+            """
+            <li style="margin-bottom: 14px;">
+                <div><strong>Idea:</strong> {idea}</div>
+                {innovation}
+                {feasibility}
+                {evidence}
+                {first_step}
+            </li>
+            """.format(
+                idea=item.get("idea", ""),
+                innovation=innovation_html,
+                feasibility=feasibility_html,
+                evidence=evidence_html,
+                first_step=first_step_html,
+            )
+        )
+    items = "".join(cards)
     return """
     <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-family: Arial, sans-serif; border: 1px solid #cfe8d5; border-radius: 8px; padding: 16px; background-color: #f1faf3;">
     <tr>
         <td style="font-size: 20px; font-weight: bold; color: #245c35;">
-            Today's Top Directions
+            Selected Ideas for Today
         </td>
     </tr>
     <tr>
@@ -110,11 +136,7 @@ def get_block_html(title:str, authors:str, rate:str, tldr:str, pdf_url:str, affi
             <strong>TLDR:</strong> {tldr}
         </td>
     </tr>
-    <tr>
-        <td style="font-size: 14px; color: #333; padding: 8px 0;">
-            <strong>Ideas:</strong> {ideas_html}
-        </td>
-    </tr>
+    __IDEAS_ROW__
 
     <tr>
         <td style="padding: 8px 0;">
@@ -123,7 +145,23 @@ def get_block_html(title:str, authors:str, rate:str, tldr:str, pdf_url:str, affi
     </tr>
 </table>
 """
-    return block_template.format(title=title, authors=authors,rate=rate, tldr=tldr, pdf_url=pdf_url, affiliations=affiliations, ideas_html=ideas_html)
+    ideas_row = ""
+    if ideas_html:
+        ideas_row = """
+    <tr>
+        <td style=\"font-size: 14px; color: #333; padding: 8px 0;\">
+            <strong>Ideas:</strong> {ideas_html}
+        </td>
+    </tr>
+""".format(ideas_html=ideas_html)
+    return block_template.replace("__IDEAS_ROW__", ideas_row).format(
+        title=title,
+        authors=authors,
+        rate=rate,
+        tldr=tldr,
+        pdf_url=pdf_url,
+        affiliations=affiliations,
+    )
 
 def get_stars(score:float):
     full_star = '<span class="full-star">⭐</span>'
@@ -142,7 +180,11 @@ def get_stars(score:float):
         return '<div class="star-wrapper">'+full_star * full_star_num + half_star * half_star_num + '</div>'
 
 
-def render_email(papers:list[Paper], daily_summary: list[str] | None = None) -> str:
+def render_email(
+    papers:list[Paper],
+    daily_summary: list[dict] | list[str] | None = None,
+    show_per_paper_ideas: bool = False,
+) -> str:
     parts = []
     if len(papers) == 0 :
         return framework.replace('__CONTENT__', get_empty_html())
@@ -167,7 +209,7 @@ def render_email(papers:list[Paper], daily_summary: list[str] | None = None) -> 
                 affiliations += ', ...'
         else:
             affiliations = 'Unknown Affiliation'
-        ideas_html = format_ideas_html(p.ideas)
+        ideas_html = format_ideas_html(p.ideas) if show_per_paper_ideas else ""
         parts.append(get_block_html(p.title, authors, rate, p.tldr, p.pdf_url, affiliations, ideas_html))
 
     content = '<br>' + '</br><br>'.join(parts) + '</br>'

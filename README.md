@@ -1,27 +1,43 @@
-原始参考仓库：[`TideDra/zotero-arxiv-daily`](https://github.com/TideDra/zotero-arxiv-daily)
-
 # AutoIdea
 
-这个项目会根据你的文献库偏好，从 arXiv / bioRxiv / medRxiv 拉取新论文，按与你近期兴趣的相关性排序，并生成：
+AutoIdea retrieves new papers from arXiv, bioRxiv, and medRxiv, ranks them against your existing reading history, and turns the top results into actionable daily output.
 
-- 每篇论文的 TLDR
-- 每篇论文的结构化摘要：`problem / method / finding / limitation`
-- 每篇论文的 ideas：研究方向、工程改进、workflow 改进、实验建议
-- 当天论文的汇总方向：`Today's Top Directions`
+For each selected paper, the workflow can generate:
 
-## 配置
+- A one-sentence TLDR
+- A structured outline: `problem / method / finding / limitation`
+- Practical ideas: research directions, engineering improvements, workflow ideas, and experiment suggestions
+- A daily cross-paper summary: `Today's Top Directions`
 
-配置入口：
+Original reference repository: [`TideDra/zotero-arxiv-daily`](https://github.com/TideDra/zotero-arxiv-daily)
+
+
+## Config Links
 
 - [config/default.yaml](https://github.com/wangerforcs/AutoIdea/blob/main/config/default.yaml)
 - [config/base.yaml](https://github.com/wangerforcs/AutoIdea/blob/main/config/base.yaml)
 - [config/custom.yaml](https://github.com/wangerforcs/AutoIdea/blob/main/config/custom.yaml)
 
-`default.yaml` 会加载 `base + custom`。
+## Notes
 
-说明：当前配置键名和 Python 包名为了兼容现有代码仍保留 `zotero_*` / `zotero:`，但对外项目名称统一为 `AutoIdea`。
+- `default.yaml` loads `base + custom`.
+- The public project name is `AutoIdea`.
+- For compatibility, the current config keys and Python package names still use `zotero` / `zotero_arxiv_daily`.
 
-完整配置如下：
+## Features
+
+- Daily paper retrieval from arXiv, bioRxiv, and medRxiv
+- Relevance ranking against your Zotero library
+- Per-paper TLDR generation
+- Configurable TLDR length: one sentence, short summary, or detailed summary
+- Per-paper structured paper decomposition
+- Per-paper idea generation
+- Daily high-level idea selection with explicit innovation and evidence
+- Email delivery of the final digest
+
+## Configuration
+
+Full configuration schema:
 
 ```yaml
 zotero:
@@ -54,12 +70,14 @@ llm:
     max_tokens: 16384
     model: ???
   language: English
+  tldr_style: short_summary
 
 idea:
   enabled: true
   max_num: 3
   daily_summary_num: 3
   context_paper_num: 5
+  show_per_paper: false
   focus: null # Example: "Focus on ideas that can improve my workflow and current research."
 
 reranker:
@@ -82,7 +100,7 @@ executor:
   reranker: local
 ```
 
-一个可直接改的 `custom` 示例：
+Example `custom.yaml`:
 
 ```yaml
 zotero:
@@ -104,13 +122,14 @@ llm:
   generation_kwargs:
     model: gpt-4o-mini
   language: Chinese
+  tldr_style: short_summary
 
 idea:
   enabled: true
   max_num: 3
   daily_summary_num: 3
   context_paper_num: 5
-  focus: "优先生成能启发后续研究、改进当前工作流、或能快速验证的新实验想法。"
+  focus: "Prioritize ideas that improve ongoing research, workflow quality, or fast validation experiments."
 
 source:
   arxiv:
@@ -122,9 +141,9 @@ executor:
   source: ['arxiv']
 ```
 
-## 环境变量
+## Environment Variables
 
-如果你沿用 GitHub Actions 的方式，至少需要这些变量：
+Minimum environment variables:
 
 ```bash
 export ZOTERO_ID=xxxx
@@ -136,17 +155,17 @@ export OPENAI_API_KEY=sk-xxx
 export OPENAI_API_BASE=https://api.openai.com/v1
 ```
 
-也可以在项目根目录放 `.env`，程序启动时会自动加载。
+You can also place these values in a local `.env` file. The application loads it automatically at startup.
 
-## 本地运行
+## Local Run
 
-安装 `uv` 后，在项目根目录执行：
+Run from the repository root:
 
 ```bash
 uv run python -m zotero_arxiv_daily.main
 ```
 
-临时覆盖配置可以直接用 Hydra override：
+Example with temporary Hydra overrides:
 
 ```bash
 uv run python -m zotero_arxiv_daily.main \
@@ -156,38 +175,42 @@ uv run python -m zotero_arxiv_daily.main \
   llm.language=Chinese
 ```
 
-## Auto Idea 流程
+## Pipeline
 
-执行链路在 [src/zotero_arxiv_daily/executor.py](https://github.com/wangerforcs/AutoIdea/blob/main/src/zotero_arxiv_daily/executor.py)：
+The execution flow is:
 
-1. 从你的历史文献库拉取语料
-2. 从论文源拉取当天新论文
-3. 用 embedding reranker 按相关性排序
-4. 对每篇论文生成 `TLDR`
-5. 对每篇论文抽取结构化要点：`problem / method / finding / limitation`
-6. 基于论文内容和近期语料上下文生成 ideas
-7. 汇总当天所有论文，生成 `Today's Top Directions`
-8. 发送邮件
+1. Load your historical corpus from Zotero.
+2. Retrieve newly published papers from the selected sources.
+3. Rank candidates with the configured embedding reranker.
+4. Generate a TLDR for each selected paper.
+5. Extract a structured outline for each paper.
+6. Generate per-paper ideas using the paper content and recent corpus context.
+7. Generate a daily cross-paper selection of the most feasible ideas, each explained in plain language and accompanied by innovation, feasibility reasoning, evidence from papers, and a first validation step.
+8. Send the final digest by email.
 
-单篇论文的 idea 逻辑在 [src/zotero_arxiv_daily/protocol.py](https://github.com/wangerforcs/AutoIdea/blob/main/src/zotero_arxiv_daily/protocol.py)。
+## Email Output
 
-## 输出内容
+Each email contains:
 
-邮件里现在包含两层内容：
-
-- 顶部汇总：当天最值得做的 3 个方向
-- 逐篇论文块：
-  - 标题
-  - 作者
-  - 机构
-  - relevance score
+- A top summary section with the most actionable directions for the day
+- Each selected idea includes:
+  - the idea itself, written as a plain-language short explanation
+  - why it is innovative
+  - why it is feasible
+  - evidence from specific papers
+  - the first practical validation step
+- A per-paper section with:
+  - Title
+  - Authors
+  - Affiliations
+  - Relevance score
   - TLDR
-  - ideas
-  - PDF 链接
+  - Ideas
+  - PDF link
 
-## 测试
+## Testing
 
-本地验证命令：
+Run the main local test set with:
 
 ```bash
 uv run pytest tests/test_protocol.py tests/test_construct_email.py tests/test_executor.py tests/test_main.py

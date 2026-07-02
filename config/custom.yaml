@@ -17,12 +17,14 @@ llm:
   generation_kwargs:
     model: mimo-v2.5
   language: Chinese
+  tldr_style: short_summary
 
 idea:
   enabled: true
   max_num: 3
   daily_summary_num: 3
   context_paper_num: 5
+  show_per_paper: false
   focus: "优先生成能启发后续研究、改进当前工作流、或能快速验证的新实验想法。"
 
 source:

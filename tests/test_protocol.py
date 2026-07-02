@@ -10,6 +10,7 @@ from zotero_arxiv_daily.protocol import generate_daily_summary
 def llm_params():
     return {
         "language": "English",
+        "tldr_style": "short_summary",
         "generation_kwargs": {"model": "gpt-4o-mini", "max_tokens": 16384},
     }
 
@@ -19,7 +20,9 @@ def idea_config():
     return {
         "enabled": True,
         "max_num": 3,
+        "daily_summary_num": 3,
         "context_paper_num": 2,
+        "show_per_paper": False,
         "focus": "Focus on workflow improvements and follow-up experiments.",
     }
 
@@ -62,6 +65,14 @@ def test_tldr_falls_back_to_abstract_on_error(llm_params):
 def test_tldr_truncates_long_prompt(llm_params):
     client = make_stub_openai_client()
     paper = make_sample_paper(full_text="word " * 10000)
+    result = paper.generate_tldr(client, llm_params)
+    assert result is not None
+
+
+def test_tldr_accepts_detailed_style(llm_params):
+    client = make_stub_openai_client()
+    paper = make_sample_paper()
+    llm_params["tldr_style"] = "detailed_summary"
     result = paper.generate_tldr(client, llm_params)
     assert result is not None
 
@@ -125,7 +136,9 @@ def test_generate_daily_summary_returns_response(llm_params, idea_config):
     )
     summary = generate_daily_summary([paper], client, llm_params, idea_config)
     assert len(summary) == 3
-    assert summary[0] == "Test the strongest method on your current benchmark this week."
+    assert summary[0]["idea"] == "Test the strongest method on your current benchmark this week."
+    assert "compact method" in summary[0]["innovation"]
+    assert summary[0]["evidence"]
 
 
 # ---------------------------------------------------------------------------

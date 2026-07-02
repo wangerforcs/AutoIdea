@@ -130,6 +130,10 @@ class Executor:
             logger.info("No new papers found. No email will be sent.")
             return
         logger.info("Sending email...")
-        email_content = render_email(reranked_papers, daily_summary)
+        email_content = render_email(
+            reranked_papers,
+            daily_summary,
+            show_per_paper_ideas=self.config.idea.get("show_per_paper", False),
+        )
         send_email(self.config, email_content)
         logger.info("Email sent successfully")

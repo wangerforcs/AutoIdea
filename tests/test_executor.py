@@ -210,9 +210,11 @@ def test_run_end_to_end(config, monkeypatch):
     assert "text/html" in email_body
     parsed_email = message_from_string(email_body)
     html_part = parsed_email.get_payload(decode=True).decode(parsed_email.get_content_charset())
-    assert "Try the method on your current benchmark." in html_part
-    assert "Today's Top Directions" in html_part
+    assert "Try the method on your current benchmark." not in html_part
+    assert "Selected Ideas for Today" in html_part
     assert "Test the strongest method on your current benchmark this week." in html_part
+    assert "Innovation:" in html_part
+    assert "Evidence:" in html_part
 
 
 def test_run_no_papers_send_empty_false(config, monkeypatch):

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, TypeVar
+from typing import Any, Optional, TypeVar
 from datetime import datetime
 import re
 import tiktoken
@@ -43,7 +43,17 @@ class Paper:
 
     def _generate_tldr_with_llm(self, openai_client:OpenAI,llm_params:dict) -> str:
         lang = llm_params.get('language', 'English')
-        prompt = f"Given the following information of a paper, generate a one-sentence TLDR summary in {lang}:\n\n"
+        tldr_style = llm_params.get("tldr_style", "short_summary")
+        tldr_instruction_map = {
+            "one_sentence": "Generate a one-sentence TLDR summary",
+            "short_summary": "Generate a compact 2-3 sentence summary",
+            "detailed_summary": "Generate a concise but information-dense 4-6 sentence summary",
+        }
+        tldr_instruction = tldr_instruction_map.get(
+            tldr_style,
+            "Generate a compact 2-3 sentence summary",
+        )
+        prompt = f"Given the following information of a paper, {tldr_instruction} in {lang}:\n\n"
         if self.title:
             prompt += f"Title:\n {self.title}\n\n"
 
@@ -67,7 +77,11 @@ class Paper:
             messages=[
                 {
                     "role": "system",
-                    "content": f"You are an assistant who perfectly summarizes scientific paper, and gives the core idea of the paper to the user. Your answer should be in {lang}.",
+                    "content": (
+                        f"You are an assistant who summarizes scientific papers accurately and clearly. "
+                        f"Your answer should be in {lang}. "
+                        f"Follow this output style: {tldr_instruction.lower()}."
+                    ),
                 },
                 {"role": "user", "content": prompt},
             ],
@@ -269,12 +283,37 @@ class Paper:
             return None
 
 
+def _normalize_daily_summary_item(item: Any) -> dict[str, Any]:
+    if isinstance(item, str):
+        return {
+            "idea": item.strip(),
+            "innovation": "",
+            "feasibility": "",
+            "evidence": [],
+            "first_step": "",
+        }
+    if not isinstance(item, dict):
+        raise ValueError("Daily summary item must be a string or object")
+    evidence = item.get("evidence", [])
+    if isinstance(evidence, str):
+        evidence = [evidence]
+    if not isinstance(evidence, list):
+        evidence = [str(evidence)]
+    return {
+        "idea": str(item.get("idea", "")).strip(),
+        "innovation": str(item.get("innovation", "")).strip(),
+        "feasibility": str(item.get("feasibility", "")).strip(),
+        "evidence": [str(x).strip() for x in evidence if str(x).strip()],
+        "first_step": str(item.get("first_step", "")).strip(),
+    }
+
+
 def generate_daily_summary(
     papers: list[Paper],
     openai_client: OpenAI,
     llm_params: dict,
     idea_config: dict,
-) -> list[str]:
+) -> list[dict[str, Any]]:
     if not papers:
         return []
 
@@ -282,9 +321,16 @@ def generate_daily_summary(
     max_items = idea_config.get("daily_summary_num", 3)
     focus = idea_config.get("focus") or "Prioritize practical, high-leverage directions."
     prompt = (
-        f"Summarize today's recommended papers into {max_items} actionable directions in {lang}.\n"
-        "Each direction should be one sentence and should describe what the user should try next.\n"
-        "Return a JSON array of strings only.\n\n"
+        f"Select the best {max_items} feasible ideas from today's recommended papers in {lang}.\n"
+        "For each selected idea, provide a structured justification.\n"
+        "Return a JSON array only. Each item must be an object with keys:\n"
+        "- idea: a plain-language 2-4 sentence explanation of the idea itself, including what to build/test/change, how it would work at a high level, and what benefit it aims to produce\n"
+        "- innovation: what is novel or non-obvious about it\n"
+        "- feasibility: why it is realistic to try soon\n"
+        "- evidence: a list of short evidence bullets grounded in specific papers\n"
+        "- first_step: the first practical step to validate it\n\n"
+        "Prefer ideas that are practical, high-leverage, and realistic to validate soon.\n"
+        "Do not make the idea field a short title. Write it so the user can understand the proposal without reading the other fields first.\n"
         f"Focus preference:\n{focus}\n\n"
     )
     for idx, paper in enumerate(papers, start=1):
@@ -309,7 +355,7 @@ def generate_daily_summary(
                 {
                     "role": "system",
                     "content": (
-                        "You synthesize a set of papers into a short set of next actions. "
+                        "You synthesize a set of papers into a short set of feasible, high-value ideas with explicit evidence. "
                         "Return JSON only."
                     ),
                 },
@@ -320,13 +366,23 @@ def generate_daily_summary(
         summary = _extract_json_payload(response.choices[0].message.content)
         if not isinstance(summary, list):
             raise ValueError("Daily summary response is not a list")
-        return [str(item).strip() for item in summary if str(item).strip()][:max_items]
+        normalized = [_normalize_daily_summary_item(item) for item in summary]
+        normalized = [item for item in normalized if item["idea"]]
+        return normalized[:max_items]
     except Exception as e:
         logger.warning(f"Failed to generate daily summary: {e}")
         fallback = []
         for paper in papers[:max_items]:
             if paper.ideas:
-                fallback.append(paper.ideas[0])
+                fallback.append(
+                    {
+                        "idea": paper.ideas[0],
+                        "innovation": paper.idea_outline.get("method", "") if paper.idea_outline else "",
+                        "feasibility": paper.idea_outline.get("finding", "") if paper.idea_outline else "",
+                        "evidence": [paper.title],
+                        "first_step": paper.tldr or "",
+                    }
+                )
         return fallback
 
 

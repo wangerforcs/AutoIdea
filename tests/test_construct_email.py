@@ -6,13 +6,21 @@ from tests.canned_responses import make_sample_paper
 
 def test_render_email_with_papers():
     papers = [make_sample_paper(score=7.5, tldr="A great paper.", ideas=["Idea 1", "Idea 2"], affiliations=["MIT"])]
-    html = render_email(papers, ["Direction 1", "Direction 2"])
+    html = render_email(papers, [{"idea": "Direction 1", "innovation": "Novel combination", "feasibility": "Easy to validate", "evidence": ["Paper A: supports the setup"], "first_step": "Run a pilot"}])
     assert "Sample Paper Title" in html
     assert "A great paper." in html
-    assert "Idea 1" in html
-    assert "Today's Top Directions" in html
+    assert "Idea 1" not in html
+    assert "Selected Ideas for Today" in html
     assert "Direction 1" in html
+    assert "Innovation:" in html
+    assert "Evidence:" in html
     assert "MIT" in html
+
+
+def test_render_email_with_per_paper_ideas_enabled():
+    papers = [make_sample_paper(score=7.5, tldr="A great paper.", ideas=["Idea 1", "Idea 2"], affiliations=["MIT"])]
+    html = render_email(papers, ["Direction 1"], show_per_paper_ideas=True)
+    assert "Idea 1" in html
 
 
 def test_render_email_empty_list():
@@ -75,6 +83,11 @@ def test_get_block_html_contains_all_fields():
     assert "Idea" in html
     assert "http://pdf.url" in html
     assert "MIT" in html
+
+
+def test_get_block_html_without_ideas_hides_idea_section():
+    html = get_block_html("Title", "Auth", "3.5", "Summary", "http://pdf.url", "MIT", "")
+    assert "Ideas:" not in html
 
 
 def test_get_empty_html():
