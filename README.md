@@ -2,6 +2,8 @@
 
 AutoIdea retrieves new papers from arXiv, bioRxiv, and medRxiv, ranks them against your existing reading history, and turns the top results into actionable daily output.
 
+This repository is a modified fork of [`TideDra/zotero-arxiv-daily`](https://github.com/TideDra/zotero-arxiv-daily).
+
 For each selected paper, the workflow can generate:
 
 - A one-sentence TLDR
@@ -215,3 +217,9 @@ Run the main local test set with:
 ```bash
 uv run pytest tests/test_protocol.py tests/test_construct_email.py tests/test_executor.py tests/test_main.py
 ```
+
+## License
+
+This repository is based on and modified from [`TideDra/zotero-arxiv-daily`](https://github.com/TideDra/zotero-arxiv-daily).
+The modified work is distributed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+Please keep the original license terms when redistributing or deploying modified versions.
