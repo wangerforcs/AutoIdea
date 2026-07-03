@@ -3,7 +3,7 @@
 import pytest
 
 from tests.canned_responses import make_sample_corpus, make_sample_paper, make_stub_openai_client
-from zotero_arxiv_daily.protocol import generate_daily_summary
+from zotero_arxiv_daily.protocol import _get_idea_mode_guidance, generate_daily_summary
 
 
 @pytest.fixture()
@@ -19,6 +19,7 @@ def llm_params():
 def idea_config():
     return {
         "enabled": True,
+        "mode": "balanced",
         "max_num": 3,
         "daily_summary_num": 3,
         "context_paper_num": 2,
@@ -80,6 +81,16 @@ def test_tldr_accepts_detailed_style(llm_params):
 # ---------------------------------------------------------------------------
 # idea outline / generate_ideas
 # ---------------------------------------------------------------------------
+
+
+def test_idea_mode_guidance_research():
+    guidance = _get_idea_mode_guidance("research")
+    assert "research-facing ideas" in guidance
+
+
+def test_idea_mode_guidance_engineering():
+    guidance = _get_idea_mode_guidance("engineering")
+    assert "engineering-facing ideas" in guidance
 
 
 def test_generate_idea_outline_returns_response(llm_params):

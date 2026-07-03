@@ -73,6 +73,7 @@ llm:
 
 idea:
   enabled: true
+  mode: balanced
   max_num: 3
   daily_summary_num: 3
   context_paper_num: 5
@@ -125,6 +126,7 @@ llm:
 
 idea:
   enabled: true
+  mode: research
   max_num: 3
   daily_summary_num: 3
   context_paper_num: 5
@@ -186,6 +188,12 @@ The execution flow is:
 6. Generate per-paper ideas using the paper content and recent corpus context.
 7. Generate a daily cross-paper selection of the most feasible ideas, each explained in plain language and accompanied by innovation, feasibility reasoning, evidence from papers, and a first validation step.
 8. Send the final digest by email.
+
+`idea.mode` controls the default orientation of the output:
+
+- `research`: prioritize hypotheses, experiments, evaluations, benchmarks, and publishable research directions
+- `balanced`: mix research and practical implementation ideas
+- `engineering`: prioritize tools, automation, infrastructure, and implementation plans
 
 ## Email Output
 

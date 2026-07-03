@@ -38,6 +38,7 @@ def _base_config():
                 "llm.generation_kwargs.model=gpt-4o-mini",
                 "llm.tldr_style=short_summary",
                 "idea.enabled=true",
+                "idea.mode=balanced",
                 "idea.max_num=3",
                 "idea.daily_summary_num=3",
                 "idea.context_paper_num=2",

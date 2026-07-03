@@ -21,6 +21,7 @@ llm:
 
 idea:
   enabled: true
+  mode: research
   max_num: 3
   daily_summary_num: 3
   context_paper_num: 5

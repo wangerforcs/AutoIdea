@@ -33,6 +33,7 @@ llm:
 
 idea:
   enabled: true # Whether to generate ideas from each recommended paper. Example: true
+  mode: balanced # Idea orientation. Options: research, balanced, engineering.
   max_num: 3 # How many ideas to generate per paper. Example: 3
   daily_summary_num: 3 # How many top directions to summarize across today's papers. Example: 3
   context_paper_num: 5 # How many recent Zotero papers to use as context when generating ideas. Example: 5

@@ -26,6 +26,26 @@ def _extract_json_payload(content: str):
 
     raise ValueError("No JSON payload found in LLM response")
 
+
+def _get_idea_mode_guidance(mode: str | None) -> str:
+    mode = (mode or "balanced").strip().lower()
+    if mode == "research":
+        return (
+            "Prioritize research-facing ideas: new hypotheses, follow-up experiments, benchmark extensions, "
+            "ablation plans, evaluation protocols, dataset ideas, and theory-building directions. "
+            "Avoid turning the output into product features or workflow automation unless they directly support research."
+        )
+    if mode == "engineering":
+        return (
+            "Prioritize engineering-facing ideas: tools, infrastructure, workflow automation, integration plans, "
+            "implementation strategies, and practical system improvements. "
+            "Avoid speculative research directions unless they clearly unlock implementation value."
+        )
+    return (
+        "Balance research and engineering ideas, but keep them practical and high-leverage. "
+        "You may include workflow or implementation ideas when they clearly support research progress."
+    )
+
 @dataclass
 class Paper:
     source: str
@@ -169,6 +189,7 @@ class Paper:
 
         lang = llm_params.get("language", "English")
         max_ideas = idea_config.get("max_num", 3)
+        mode_guidance = _get_idea_mode_guidance(idea_config.get("mode"))
         focus = idea_config.get("focus") or (
             "Generate practical ideas inspired by the paper, including follow-up research ideas, "
             "how to improve current work, and concrete experiments or applications to try."
@@ -182,6 +203,7 @@ class Paper:
             "The ideas must cover fixed categories when possible: research idea, engineering idea, workflow idea. "
             "If max_ideas is larger, add one extra experiment or application idea.\n"
             "Return a JSON array of strings only.\n\n"
+            f"Mode guidance:\n{mode_guidance}\n\n"
             f"Focus preference:\n{focus}\n\n"
         )
 
@@ -320,6 +342,7 @@ def generate_daily_summary(
 
     lang = llm_params.get("language", "English")
     max_items = idea_config.get("daily_summary_num", 3)
+    mode_guidance = _get_idea_mode_guidance(idea_config.get("mode"))
     focus = idea_config.get("focus") or "Prioritize practical, high-leverage directions."
     prompt = (
         f"Select the best {max_items} feasible ideas from today's recommended papers in {lang}.\n"
@@ -332,6 +355,7 @@ def generate_daily_summary(
         "- first_step: the first practical step to validate it\n\n"
         "Prefer ideas that are practical, high-leverage, and realistic to validate soon.\n"
         "Do not make the idea field a short title. Write it so the user can understand the proposal without reading the other fields first.\n"
+        f"Mode guidance:\n{mode_guidance}\n\n"
         f"Focus preference:\n{focus}\n\n"
     )
     for idx, paper in enumerate(papers, start=1):
