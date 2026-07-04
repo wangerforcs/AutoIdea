@@ -15,7 +15,7 @@ llm:
     key: ${oc.env:OPENAI_API_KEY}
     base_url: ${oc.env:OPENAI_API_BASE}
   generation_kwargs:
-    model: mimo-v2.5
+    model: Qwen/Qwen3.5-27B
   language: Chinese
   tldr_style: short_summary
 
@@ -33,5 +33,6 @@ source:
     category: ["cs.AI","cs.CV","cs.LG","cs.CL","cs.DC","cs.RO","cs.MA","cs.OS"]
 
 executor:
-  debug: ${oc.env:DEBUG,null}
+  debug: true
+  # debug: ${oc.env:DEBUG,null}
   source: ['arxiv']
